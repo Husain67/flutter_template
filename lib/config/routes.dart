@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../features/home/presentation/pages/main_page.dart';
+import '../features/home/presentation/pages/home_page.dart';
 import '../features/editor/presentation/pages/editor_page.dart';
 import '../features/output/presentation/pages/output_page.dart';
 import '../features/history/presentation/pages/history_page.dart';
@@ -83,14 +84,4 @@ final routerProvider = Provider<GoRouter>((ref) {
   );
 });
 
-// HomePage placeholder
-class HomePage extends StatelessWidget {
-  const HomePage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: Text('Home Page'),
-    );
-  }
-}
+// HomePage will be imported from features/home

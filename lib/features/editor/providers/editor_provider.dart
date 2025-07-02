@@ -6,6 +6,7 @@ import '../../../core/models/code_file.dart';
 import '../../../core/models/code_execution_result.dart';
 import '../../../core/services/api_service.dart';
 import '../../../core/services/storage_service.dart';
+import '../../history/providers/history_provider.dart';
 
 class EditorState {
   final String currentCode;
@@ -45,8 +46,9 @@ class EditorState {
 
 class EditorNotifier extends StateNotifier<EditorState> {
   final ApiService _apiService;
+  final Ref _ref;
 
-  EditorNotifier(this._apiService) : super(const EditorState()) {
+  EditorNotifier(this._apiService, this._ref) : super(const EditorState()) {
     _loadFiles();
   }
 
@@ -98,23 +100,36 @@ class EditorNotifier extends StateNotifier<EditorState> {
         lastExecutionResult: result,
       );
       
-      // Save to history if successful
-      if (result.success) {
-        _addToHistory();
-      }
+      // Add to history
+      await _ref.read(historyProvider.notifier).addExecutionEntry(
+        code: state.currentCode,
+        success: result.success,
+        output: result.output,
+        error: result.error,
+      );
       
       return result;
     } catch (e) {
+      final errorResult = CodeExecutionResult(
+        success: false,
+        output: '',
+        error: 'Execution failed: $e',
+        executionTime: 0,
+      );
+      
       state = state.copyWith(
         isExecuting: false,
-        lastExecutionResult: CodeExecutionResult(
-          success: false,
-          output: '',
-          error: 'Execution failed: $e',
-          executionTime: 0,
-        ),
+        lastExecutionResult: errorResult,
       );
-      return state.lastExecutionResult;
+      
+      // Add error to history
+      await _ref.read(historyProvider.notifier).addExecutionEntry(
+        code: state.currentCode,
+        success: false,
+        error: 'Execution failed: $e',
+      );
+      
+      return errorResult;
     }
   }
 
@@ -253,30 +268,10 @@ class EditorNotifier extends StateNotifier<EditorState> {
     await StorageService.setString(StorageService.lastCodeKey, state.currentCode);
   }
 
-  void _addToHistory() {
-    if (state.currentCode.isEmpty) return;
-    
-    try {
-      final history = StorageService.getStringList(StorageService.codeHistoryKey) ?? [];
-      
-      // Don't add duplicates
-      if (history.isNotEmpty && history.last == state.currentCode) return;
-      
-      history.add(state.currentCode);
-      
-      // Keep only last 50 entries
-      if (history.length > 50) {
-        history.removeAt(0);
-      }
-      
-      StorageService.setStringList(StorageService.codeHistoryKey, history);
-    } catch (e) {
-      print('Add to history error: $e');
-    }
-  }
+
 }
 
 final editorProvider = StateNotifierProvider<EditorNotifier, EditorState>((ref) {
   final apiService = ref.watch(apiServiceProvider);
-  return EditorNotifier(apiService);
+  return EditorNotifier(apiService, ref);
 });
