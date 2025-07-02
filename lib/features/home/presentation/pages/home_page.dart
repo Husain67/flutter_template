@@ -79,7 +79,7 @@ class _HomePageState extends ConsumerState<HomePage> {
           children: [
             Row(
               children: [
-                Icon(
+                const Icon(
                   Icons.code,
                   color: Colors.white,
                   size: 32,
